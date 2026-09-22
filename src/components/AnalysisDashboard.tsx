@@ -1,0 +1,290 @@
+import { useState } from 'react';
+import { useAppStore } from '../store/useAppStore';
+import { useThemeStore } from '../store/useThemeStore';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { Sparkles, Eye } from 'lucide-react';
+import { FrameThumbnail, FrameViewer } from './FrameViewer';
+import { VideoFrame } from '../types';
+
+function TraitBar({ name, value, color }: { name: string; value: number; color: string }) {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{name}</span>
+        <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>{value}%</span>
+      </div>
+      <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+        <div className={`h-full rounded-full transition-all duration-1000 ${color}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function EvidenceSection({ frames, startIndex }: { frames: VideoFrame[]; startIndex: number }) {
+  const [selectedFrame, setSelectedFrame] = useState<VideoFrame | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  return (
+    <>
+      <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+        {frames.map((frame, i) => (
+          <FrameThumbnail
+            key={frame.id}
+            frame={frame}
+            index={startIndex + i}
+            onClick={() => { setSelectedFrame(frame); setSelectedIndex(startIndex + i); }}
+          />
+        ))}
+      </div>
+      {selectedFrame && (
+        <FrameViewer frame={selectedFrame} index={selectedIndex} onClose={() => setSelectedFrame(null)} />
+      )}
+    </>
+  );
+}
+
+export function AnalysisDashboard() {
+  const { analysis } = useAppStore();
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+  const [activeSystem, setActiveSystem] = useState<string>('bigfive');
+
+  if (!analysis) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 text-center">
+        <Sparkles className="w-16 h-16 text-gray-700 mb-4" />
+        <h3 className="text-xl font-semibold text-gray-400 mb-2">Нет данных анализа</h3>
+        <p className={isDark ? 'text-gray-600' : 'text-gray-400'}>Сначала загрузите и проанализируйте видео.</p>
+      </div>
+    );
+  }
+
+  const systems = [
+    { id: 'bigfive', label: 'Big Five (OCEAN)' },
+    { id: 'mbti', label: 'MBTI' },
+    { id: 'enneagram', label: 'Эннеаграмма' },
+    { id: 'temperament', label: 'Темперамент' },
+    { id: 'hexaco', label: 'HEXACO' },
+    { id: 'pid5', label: 'PID-5 (DSM-5)' },
+  ];
+
+  const bigFiveData = [
+    { trait: 'Открытость', value: analysis.bigFive.openness.value },
+    { trait: 'Сознат.', value: analysis.bigFive.conscientiousness.value },
+    { trait: 'Экстраверсия', value: analysis.bigFive.extraversion.value },
+    { trait: 'Доброжелат.', value: analysis.bigFive.agreeableness.value },
+    { trait: 'Невротизм', value: analysis.bigFive.neuroticism.value },
+  ];
+
+  const temperamentData = [
+    { name: 'Холерик', value: analysis.temperament.choleric },
+    { name: 'Сангвиник', value: analysis.temperament.sanguine },
+    { name: 'Меланхолик', value: analysis.temperament.melancholic },
+    { name: 'Флегматик', value: analysis.temperament.phlegmatic },
+  ];
+
+  const renderSystem = () => {
+    switch (activeSystem) {
+      case 'bigfive':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={bigFiveData}>
+                    <PolarGrid stroke={isDark ? '#374151' : '#d1d5db'} />
+                    <PolarAngleAxis dataKey="trait" tick={{ fill: isDark ? '#9CA3AF' : '#6B7280', fontSize: 11 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: isDark ? '#6B7280' : '#9CA3AF', fontSize: 10 }} />
+                    <Radar name="Значение" dataKey="value" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.3} strokeWidth={2} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-3">
+                {Object.entries(analysis.bigFive).map(([key, trait]) => (
+                  <TraitBar key={key} name={trait.name} value={trait.value} color="bg-gradient-to-r from-violet-500 to-cyan-500" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" />
+                Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={Object.values(analysis.bigFive).flatMap(t => t.evidence)} startIndex={0} />
+            </div>
+          </div>
+        );
+
+      case 'mbti':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className={`p-8 rounded-2xl bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border text-center ${isDark ? 'border-violet-500/20' : 'border-violet-200'}`}>
+                <p className="text-6xl font-bold bg-gradient-to-r from-violet-500 to-cyan-500 bg-clip-text text-transparent">
+                  {analysis.mbti.type}
+                </p>
+                <p className={`text-sm mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analysis.mbti.description}</p>
+              </div>
+              <div className="space-y-4">
+                {Object.entries(analysis.mbti.dimensions).map(([key, dim]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>{key[0]}</span>
+                      <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>{key[1]}</span>
+                    </div>
+                    <div className={`h-3 rounded-full overflow-hidden relative ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                      <div className="absolute h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full transition-all duration-1000"
+                        style={{ width: `${dim.value}%`, left: dim.value > 50 ? '0' : `${dim.value}%` }} />
+                    </div>
+                    <p className="text-xs text-center text-violet-500">{dim.label} ({dim.value}%)</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" /> Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={analysis.mbti.evidence} startIndex={20} />
+            </div>
+          </div>
+        );
+
+      case 'enneagram':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className={`p-8 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border text-center ${isDark ? 'border-amber-500/20' : 'border-amber-200'}`}>
+                <p className="text-6xl font-bold text-amber-500">{analysis.enneagram.type}w{analysis.enneagram.wing}</p>
+                <p className={`text-sm mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{analysis.enneagram.description}</p>
+                <p className="text-xs text-amber-500 mt-3">Уверенность: {Math.round(analysis.enneagram.confidence * 100)}%</p>
+              </div>
+              <div className="grid grid-cols-9 gap-1">
+                {Array.from({ length: 9 }, (_, i) => (
+                  <div key={i} className={`h-16 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    i + 1 === analysis.enneagram.type ? 'bg-amber-500 text-white' : isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400'
+                  }`}>{i + 1}</div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" /> Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={analysis.enneagram.evidence} startIndex={30} />
+            </div>
+          </div>
+        );
+
+      case 'temperament':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={temperamentData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                    <XAxis dataKey="name" tick={{ fill: isDark ? '#9CA3AF' : '#6B7280', fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tick={{ fill: isDark ? '#6B7280' : '#9CA3AF', fontSize: 10 }} />
+                    <Tooltip contentStyle={{ backgroundColor: isDark ? '#1F2937' : '#fff', border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`, borderRadius: '12px' }} />
+                    <Bar dataKey="value" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}>
+                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <span className="font-semibold text-violet-500">{analysis.temperament.primary}</span>
+                  {' '}основной, {' '}
+                  <span className="font-semibold text-cyan-500">{analysis.temperament.secondary}</span>
+                  {' '}вторичный
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" /> Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={analysis.temperament.evidence} startIndex={40} />
+            </div>
+          </div>
+        );
+
+      case 'hexaco':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              {Object.entries(analysis.hexaco).map(([key, trait]) => (
+                <TraitBar key={key} name={trait.name} value={trait.value} color="bg-gradient-to-r from-emerald-500 to-teal-500" />
+              ))}
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" /> Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={Object.values(analysis.hexaco).flatMap(t => t.evidence)} startIndex={50} />
+            </div>
+          </div>
+        );
+
+      case 'pid5':
+        return (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              {Object.entries(analysis.pid5).map(([key, trait]) => (
+                <div key={key} className={`p-4 rounded-xl border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{trait.name}</span>
+                    <span className={`text-sm font-semibold ${trait.value > 60 ? 'text-red-500' : trait.value > 40 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                      {trait.value}%
+                    </span>
+                  </div>
+                  <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                    <div className={`h-full rounded-full transition-all duration-1000 ${
+                      trait.value > 60 ? 'bg-red-500' : trait.value > 40 ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`} style={{ width: `${trait.value}%` }} />
+                  </div>
+                  <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{trait.description}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Eye className="w-4 h-4 text-violet-400" /> Кадры-доказательства
+              </h4>
+              <EvidenceSection frames={Object.values(analysis.pid5).flatMap(t => t.evidence)} startIndex={70} />
+            </div>
+          </div>
+        );
+
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Результаты анализа личности</h2>
+        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Комплексная оценка по 6 психологическим системам с поведенческими доказательствами.</p>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {systems.map((sys) => (
+          <button key={sys.id} onClick={() => setActiveSystem(sys.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              activeSystem === sys.id
+                ? isDark ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-violet-50 text-violet-700 border border-violet-200'
+                : isDark ? 'text-gray-400 hover:text-gray-200 bg-gray-900/50 border border-gray-800' : 'text-gray-600 hover:text-gray-900 bg-white border border-gray-200'
+            }`}>
+            {sys.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={`rounded-2xl border p-6 ${isDark ? 'bg-gray-900/30 border-gray-800' : 'bg-white border-gray-200'}`}>
+        {renderSystem()}
+      </div>
+    </div>
+  );
+}
