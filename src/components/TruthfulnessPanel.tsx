@@ -12,7 +12,15 @@ export function TruthfulnessPanel() {
   const bg = (v:number) => v>=75?'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30':v>=50?'from-amber-500/20 to-amber-500/5 border-amber-500/30':'from-red-500/20 to-red-500/5 border-red-500/30';
   const bc = (v:number) => v>=75?'bg-emerald-500':v>=50?'bg-amber-500':'bg-red-500';
 
+  const { isDemoMode } = useAppStore();
   return (<div className="max-w-6xl mx-auto space-y-8"><div><h2 className="text-2xl font-bold mb-2">Оценка правдивости</h2><p className={isDark?'text-gray-400':'text-gray-600'}>Многомерный анализ индикаторов правдивости.</p></div>
+    {isDemoMode && (
+      <div className={`p-4 rounded-xl border ${isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+        <p className={`text-sm ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+          ⚠️ <b>Демо-режим:</b> Оценка сгенерирована синтетически и НЕ отражает реальную правдивость. Для честного анализа подключите API в «Настройки LLM» и повторите анализ.
+        </p>
+      </div>
+    )}
     <div className="grid grid-cols-3 gap-8"><div className="col-span-1 space-y-6">
       <div className={`p-8 rounded-2xl bg-gradient-to-br ${bg(truthfulness.overallScore)} border text-center`}>
         <ShieldCheck className="w-12 h-12 mx-auto mb-4 text-gray-400"/><p className="text-5xl font-bold bg-gradient-to-r from-violet-500 to-cyan-500 bg-clip-text text-transparent">{truthfulness.overallScore}%</p>
