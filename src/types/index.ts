@@ -19,7 +19,7 @@ export interface VideoFrame {
 
 export interface PersonalityTrait {
   name: string;
-  value: number; // 0-100
+  value: number;
   description: string;
   evidence: VideoFrame[];
 }
@@ -33,7 +33,7 @@ export interface BigFiveResult {
 }
 
 export interface MBTIResult {
-  type: string; // e.g., "INTJ"
+  type: string;
   dimensions: {
     EI: { value: number; label: string };
     SN: { value: number; label: string };
@@ -45,7 +45,7 @@ export interface MBTIResult {
 }
 
 export interface EnneagramResult {
-  type: number; // 1-9
+  type: number;
   wing: number;
   confidence: number;
   evidence: VideoFrame[];
@@ -80,7 +80,7 @@ export interface PID5Result {
 }
 
 export interface TruthfulnessResult {
-  overallScore: number; // 0-100
+  overallScore: number;
   verbalConsistency: number;
   microExpressions: number;
   bodyLanguage: number;
@@ -123,15 +123,4 @@ export interface VideoFile {
   url: string;
   duration: number;
   name: string;
-  thumbnail?: string;
-}
-
-export interface AppState {
-  video: VideoFile | null;
-  settings: LLMSettings;
-  analysis: AnalysisResult | null;
-  isAnalyzing: boolean;
-  currentTab: string;
-  fingerprints: DigitalFingerprint[];
-  searchResults: VideoFrame[];
 }

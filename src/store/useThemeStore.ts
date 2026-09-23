@@ -5,11 +5,13 @@ type Theme = 'dark' | 'light';
 interface ThemeStore {
   theme: Theme;
   toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
 }
 
 export const useThemeStore = create<ThemeStore>((set) => ({
-  theme: 'dark',
-  toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
-  setTheme: (theme) => set({ theme }),
+  theme: (typeof window !== 'undefined' && localStorage.getItem('theme') as Theme) || 'dark',
+  toggleTheme: () => set((s) => {
+    const next = s.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    return { theme: next };
+  }),
 }));
