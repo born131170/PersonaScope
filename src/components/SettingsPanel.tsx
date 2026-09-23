@@ -1,0 +1,53 @@
+import { useState } from 'react';
+import { useAppStore } from '../store/useAppStore';
+import { useThemeStore } from '../store/useThemeStore';
+import { Key, Globe, Thermometer, Hash, Save, CheckCircle, AlertCircle, Zap, ExternalLink } from 'lucide-react';
+
+const PRESETS = [
+  { id:'groq', name:'Groq', icon:'⚡', color:'from-orange-500 to-red-500', desc:'Самый быстрый. Llama 3.3.', limit:'Безлимитно', vision:false, provider:'custom' as const, model:'llama-3.3-70b-versatile', url:'https://api.groq.com/openai/v1', signup:'https://console.groq.com/keys', steps:['console.groq.com/keys','Зарегистрируйтесь','Create API Key','Скопируйте ключ (gsk_)','Нажмите «Подключить»'] },
+  { id:'gemini', name:'Google Gemini', icon:'✦', color:'from-blue-500 to-cyan-500', desc:'Мультимодальный ИИ.', limit:'15 з/мин, 1000/день', vision:true, provider:'google' as const, model:'gemini-2.0-flash', url:'https://generativelanguage.googleapis.com/v1beta', signup:'https://aistudio.google.com/apikey', steps:['aistudio.google.com/apikey','Войдите через Google','Create API Key','Скопируйте ключ','Нажмите «Подключить»'] },
+  { id:'openrouter', name:'OpenRouter', icon:'🔀', color:'from-purple-500 to-pink-500', desc:'Агрегатор моделей.', limit:'Разные лимиты', vision:true, provider:'custom' as const, model:'meta-llama/llama-3.3-70b-instruct:free', url:'https://openrouter.ai/api/v1', signup:'https://openrouter.ai/keys', steps:['openrouter.ai/keys','Зарегистрируйтесь','Create Key','Скопируйте (sk-or-)','Нажмите «Подключить»'] },
+  { id:'cerebras', name:'Cerebras', icon:'🧠', color:'from-emerald-500 to-teal-500', desc:'Сверхбыстрый inference.', limit:'Бесплатно', vision:false, provider:'custom' as const, model:'llama3.1-70b', url:'https://api.cerebras.ai/v1', signup:'https://cloud.cerebras.ai/', steps:['cloud.cerebras.ai','Зарегистрируйтесь','API Keys','Создайте ключ','Нажмите «Подключить»'] },
+  { id:'together', name:'Together AI', icon:'🤝', color:'from-indigo-500 to-violet-500', desc:'$1 кредит бесплатно.', limit:'$1 кредит', vision:true, provider:'custom' as const, model:'meta-llama/Llama-3.3-70B-Instruct-Turbo', url:'https://api.together.xyz/v1', signup:'https://api.together.ai/settings/api-keys', steps:['api.together.ai','Зарегистрируйтесь','Получите $1','Создайте ключ','Нажмите «Подключить»'] },
+  { id:'openai', name:'OpenAI', icon:'◉', color:'from-green-500 to-emerald-500', desc:'GPT-4o-mini.', limit:'$5 кредитов', vision:true, provider:'openai' as const, model:'gpt-4o-mini', url:'https://api.openai.com/v1', signup:'https://platform.openai.com/api-keys', steps:['platform.openai.com','Создайте аккаунт ($5)','API Keys','Создайте ключ','Нажмите «Подключить»'] },
+];
+
+export function SettingsPanel() {
+  const { settings, setSettings } = useAppStore();
+  const { theme } = useThemeStore(); const isDark = theme === 'dark';
+  const [saved, setSaved] = useState(false); const [testRes, setTestRes] = useState<string|null>(null); const [expanded, setExpanded] = useState<string|null>(null);
+
+  const handleSave = () => { setSaved(true); setTimeout(()=>setSaved(false),2000); };
+  const handleTest = async () => {
+    setTestRes('Проверка...');
+    try { const { callLLM } = await import('../utils/llmApi'); await callLLM(settings,[{role:'user',content:'Скажи "ОК"'}],{maxTokens:10}); setTestRes('✓ Соединение успешно!'); }
+    catch(e) { setTestRes(`✗ ${e instanceof Error?e.message:'Ошибка'}`); }
+  };
+  const apply = (p:typeof PRESETS[0]) => setSettings({ provider:p.provider, model:p.model, baseUrl:p.url });
+
+  const inp = `w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:border-violet-500 ${isDark?'bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-500':'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}`;
+  const card = `p-6 rounded-2xl border space-y-4 ${isDark?'bg-gray-900/50 border-gray-800':'bg-white border-gray-200'}`;
+
+  return (<div className="max-w-4xl mx-auto space-y-8"><div><h2 className="text-2xl font-bold mb-2">Настройки LLM</h2><p className={isDark?'text-gray-400':'text-gray-600'}>Настройте провайдер ИИ для анализа.</p></div>
+    <div className={card}><h3 className="text-lg font-semibold flex items-center gap-2"><Zap className="w-5 h-5 text-emerald-500"/>Быстрое подключение — бесплатные API</h3><p className={`text-sm ${isDark?'text-gray-400':'text-gray-600'}`}>Выберите провайдера и подключите в один клик.</p>
+      <div className="grid grid-cols-2 gap-3">{PRESETS.map(p=>(<div key={p.id} className={`rounded-xl border overflow-hidden ${isDark?'border-gray-800':'border-gray-200'}`}>
+        <button onClick={()=>setExpanded(expanded===p.id?null:p.id)} className={`w-full p-4 text-left ${isDark?'hover:bg-gray-800/50':'hover:bg-gray-50'}`}>
+          <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center text-lg`}>{p.icon}</div><div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className={`text-sm font-semibold ${isDark?'text-gray-200':'text-gray-800'}`}>{p.name}</p>{p.vision&&<span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">Vision</span>}</div><p className={`text-xs truncate ${isDark?'text-gray-500':'text-gray-400'}`}>{p.desc}</p></div></div>
+          <div className="flex items-center gap-3 mt-2 text-[10px]"><span className="text-emerald-500">{p.limit}</span></div>
+        </button>
+        {expanded===p.id && (<div className={`px-4 pb-4 border-t ${isDark?'border-gray-800':'border-gray-200'} pt-3 space-y-3`}>
+          <ol className={`text-xs space-y-1 ${isDark?'text-gray-400':'text-gray-600'}`}>{p.steps.map((s,i)=>(<li key={i} className="flex items-start gap-2"><span className="text-violet-500 font-bold">{i+1}.</span><span>{s.includes('http')?<a href={s.match(/https?:\/\/[^\s)]+/)?.[0]} target="_blank" rel="noopener" className="text-violet-500 underline break-all">{s}</a>:s}</span></li>))}</ol>
+          <div className="flex gap-2"><a href={p.signup} target="_blank" rel="noopener" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium"><ExternalLink className="w-3 h-3"/>Получить ключ</a><button onClick={()=>apply(p)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium"><Zap className="w-3 h-3"/>Подключить</button></div>
+        </div>)}
+      </div>))}</div>
+    </div>
+    <div className={card}><h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-5 h-5 text-violet-500"/>Ручная настройка</h3>
+      <div className="grid grid-cols-4 gap-3">{[{id:'openai',l:'OpenAI',d:'GPT-4o'},{id:'anthropic',l:'Anthropic',d:'Claude 3'},{id:'google',l:'Google',d:'Gemini'},{id:'custom',l:'Свой',d:'OpenAI-совм.'}].map(p=>(<button key={p.id} onClick={()=>{setSettings({provider:p.id as any});if(p.id==='openai')setSettings({model:'gpt-4o-mini',baseUrl:'https://api.openai.com/v1'});if(p.id==='anthropic')setSettings({model:'claude-3-5-sonnet-20241022',baseUrl:'https://api.anthropic.com/v1'});if(p.id==='google')setSettings({model:'gemini-2.0-flash',baseUrl:'https://generativelanguage.googleapis.com/v1beta'})}} className={`p-3 rounded-xl border text-left ${settings.provider===p.id?isDark?'border-violet-500 bg-violet-500/10':'border-violet-500 bg-violet-50':isDark?'border-gray-700 bg-gray-800/30':'border-gray-300 bg-gray-50'}`}><p className={`text-sm font-medium ${isDark?'text-gray-200':'text-gray-800'}`}>{p.l}</p><p className={`text-xs mt-0.5 ${isDark?'text-gray-500':'text-gray-400'}`}>{p.d}</p></button>))}</div>
+    </div>
+    <div className={card}><h3 className="text-lg font-semibold flex items-center gap-2"><Key className="w-5 h-5 text-violet-500"/>API-ключ</h3><input type="password" value={settings.apiKey} onChange={e=>setSettings({apiKey:e.target.value})} placeholder="Вставьте API-ключ..." className={inp}/><p className={`text-xs ${isDark?'text-gray-500':'text-gray-400'}`}>🔒 Ключ хранится только в браузере.</p></div>
+    <div className={card}><h3 className="text-lg font-semibold">Модель и эндпоинт</h3><div className="grid grid-cols-2 gap-4"><div><label className={`text-sm mb-1 block ${isDark?'text-gray-400':'text-gray-500'}`}>Модель</label><input type="text" value={settings.model} onChange={e=>setSettings({model:e.target.value})} className={inp}/></div><div><label className={`text-sm mb-1 block ${isDark?'text-gray-400':'text-gray-500'}`}>Base URL</label><input type="text" value={settings.baseUrl} onChange={e=>setSettings({baseUrl:e.target.value})} className={inp}/></div></div></div>
+    <div className={card}><h3 className="text-lg font-semibold flex items-center gap-2"><Thermometer className="w-5 h-5 text-violet-500"/>Параметры</h3><div className="grid grid-cols-2 gap-6"><div><div className="flex justify-between mb-2"><label className={`text-sm ${isDark?'text-gray-400':'text-gray-500'}`}>Температура</label><span className="text-sm text-violet-500">{settings.temperature}</span></div><input type="range" min="0" max="1" step="0.1" value={settings.temperature} onChange={e=>setSettings({temperature:parseFloat(e.target.value)})} className="w-full accent-violet-500"/></div><div><div className="flex justify-between mb-2"><label className={`text-sm flex items-center gap-1 ${isDark?'text-gray-400':'text-gray-500'}`}><Hash className="w-4 h-4"/>Макс. токенов</label><span className="text-sm text-violet-500">{settings.maxTokens}</span></div><input type="range" min="256" max="8192" step="256" value={settings.maxTokens} onChange={e=>setSettings({maxTokens:parseInt(e.target.value)})} className="w-full accent-violet-500"/></div></div></div>
+    <div className="flex items-center gap-4 flex-wrap"><button onClick={handleSave} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium">{saved?<CheckCircle className="w-5 h-5"/>:<Save className="w-5 h-5"/>}{saved?'Сохранено!':'Сохранить'}</button><button onClick={handleTest} className={`px-6 py-3 rounded-xl border ${isDark?'border-gray-700 text-gray-400':'border-gray-300 text-gray-600'}`}>🔌 Проверить</button></div>
+    {testRes && (<div className={`flex items-center gap-3 p-4 rounded-xl ${testRes.startsWith('✓')?'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500':testRes.startsWith('✗')?'bg-red-500/10 border border-red-500/30 text-red-500':isDark?'bg-gray-800/50 border border-gray-700 text-gray-400':'bg-gray-100 border border-gray-200 text-gray-600'}`}><AlertCircle className="w-5 h-5"/><span className="text-sm">{testRes}</span></div>)}
+  </div>);
+}
