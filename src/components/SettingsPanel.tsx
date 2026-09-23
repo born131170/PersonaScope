@@ -194,15 +194,37 @@ export function SettingsPanel() {
       </div>
 
       {testRes && (
-        <div className={`flex items-center gap-3 p-4 rounded-xl ${
+        <div className={`flex items-start gap-3 p-4 rounded-xl ${
           testRes.startsWith('✓') ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500' :
           testRes.startsWith('✗') ? 'bg-red-500/10 border border-red-500/30 text-red-500' :
           isDark ? 'bg-gray-800/50 border border-gray-700 text-gray-400' : 'bg-gray-100 border border-gray-200 text-gray-600'
         }`}>
-          <AlertCircle className="w-5 h-5"/>
-          <span className="text-sm">{testRes}</span>
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5"/>
+          <div className="space-y-2">
+            <span className="text-sm">{testRes}</span>
+            {testRes.includes('CORS') && (
+              <div className={`p-3 rounded-lg text-xs space-y-2 ${isDark ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+                <p className="font-semibold">🔧 Как исправить CORS-ошибку:</p>
+                <ol className="space-y-1 list-decimal list-inside">
+                  <li><b>Способ 1 (рекомендуется):</b> Установите расширение <a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" target="_blank" rel="noopener" className="underline font-medium">Allow CORS</a> для Chrome/Edge и включите его</li>
+                  <li><b>Способ 2:</b> Запустите приложение локально: <code className="bg-black/20 px-1 rounded">npm run dev</code> — там CORS не блокируется</li>
+                  <li><b>Способ 3:</b> Используйте Firefox — там CORS менее строгий</li>
+                </ol>
+                <p className="mt-1 opacity-80">⚠️ Это ограничение браузера, не ошибка API. Ваше приложение на другом сайте работает, потому что там нет CORS-блокировки.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* CORS Info */}
+      <div className={`p-4 rounded-xl border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-blue-50 border-blue-200'}`}>
+        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-blue-700'}`}>
+          <b>💡 Подсказка:</b> Если получаете ошибку «Failed to fetch» или «CORS» — это ограничение браузера. 
+          Установите расширение <a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" target="_blank" rel="noopener" className="underline font-medium text-violet-500">Allow CORS</a> для Chrome, 
+          или используйте <a href="https://addons.mozilla.org/firefox/addon/cors-everywhere/" target="_blank" rel="noopener" className="underline font-medium text-violet-500">CORS Everywhere</a> для Firefox.
+        </p>
+      </div>
     </div>
   );
 }
