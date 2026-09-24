@@ -1,23 +1,33 @@
-import { useState } from 'react';
 import { X, Clock, Eye, Maximize2 } from 'lucide-react';
 import { VideoFrame } from '../types';
 import { useThemeStore } from '../store/useThemeStore';
+import { useAppStore } from '../store/useAppStore';
 
-const IMGS = [
+// Запасные изображения если нет реальных кадров
+const FALLBACK_IMGS = [
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=640&h=480&fit=crop&crop=face',
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=640&h=480&fit=crop&crop=face',
   'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=640&h=480&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=640&h=480&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=640&h=480&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=640&h=480&fit=crop&crop=face',
 ];
 
-export const getFrameImage = (i: number) => IMGS[i % IMGS.length];
+export const getFrameImage = (i: number) => FALLBACK_IMGS[i % FALLBACK_IMGS.length];
+
+// Получить реальное изображение кадра из извлечённых
+function useFrameImage(frame: VideoFrame, index: number): string {
+  const { extractedFrames } = useAppStore();
+  if (frame.imageData) return frame.imageData;
+  // Ищем ближайший извлечённый кадр по timestamp
+  const closest = extractedFrames.reduce((prev, curr) =>
+    Math.abs(curr.timestamp - frame.timestamp) < Math.abs(prev.timestamp - frame.timestamp) ? curr : prev
+  , extractedFrames[0]);
+  return closest?.imageData || getFrameImage(index);
+}
 
 export function FrameViewer({ frame, onClose, index = 0 }: { frame: VideoFrame; onClose: () => void; index?: number }) {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
   const m = Math.floor(frame.timestamp / 60), s = Math.floor(frame.timestamp % 60);
+  const imgSrc = frame.imageData || getFrameImage(index);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
@@ -26,7 +36,7 @@ export function FrameViewer({ frame, onClose, index = 0 }: { frame: VideoFrame; 
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center"><Eye className="w-4 h-4 text-violet-400" /></div>
             <div>
-              <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Кадр анализа</p>
+              <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Кадр из видео</p>
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Clock className="w-3 h-3" /><span>{m}:{s.toString().padStart(2, '0')}</span>
                 {frame.microExpression && <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">{frame.microExpression}</span>}
@@ -36,7 +46,7 @@ export function FrameViewer({ frame, onClose, index = 0 }: { frame: VideoFrame; 
           <button onClick={onClose} className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}><X className="w-5 h-5 text-gray-500" /></button>
         </div>
         <div className="relative aspect-video bg-gray-800">
-          <img src={getFrameImage(index)} alt="" className="w-full h-full object-cover" />
+          <img src={imgSrc} alt="" className="w-full h-full object-contain" />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
             <div className="flex items-center gap-2 text-white text-sm">
               <Maximize2 className="w-4 h-4" /><span>Уверенность: {Math.round(frame.confidence * 100)}%</span>
@@ -59,13 +69,20 @@ export function FrameViewer({ frame, onClose, index = 0 }: { frame: VideoFrame; 
 
 export function FrameThumbnail({ frame, index, onClick }: { frame: VideoFrame; index: number; onClick: () => void }) {
   const { theme } = useThemeStore();
+  const { extractedFrames } = useAppStore();
   const isDark = theme === 'dark';
   const m = Math.floor(frame.timestamp / 60), s = Math.floor(frame.timestamp % 60);
+  
+  // Реальный кадр из видео или запасной
+  const closest = extractedFrames.reduce((prev, curr) =>
+    Math.abs(curr.timestamp - frame.timestamp) < Math.abs(prev.timestamp - frame.timestamp) ? curr : prev
+  , extractedFrames[0]);
+  const imgSrc = frame.imageData || closest?.imageData || getFrameImage(index);
 
   return (
     <div className={`flex items-center gap-3 p-3 rounded-xl border hover:border-violet-500/30 transition-all cursor-pointer group ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-gray-200'}`} onClick={onClick}>
-      <div className="relative w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800">
-        <img src={getFrameImage(index)} alt="" className="w-full h-full object-cover" />
+      <div className="relative w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800">
+        <img src={imgSrc} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
           <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>

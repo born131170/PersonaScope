@@ -38,7 +38,15 @@ export function AnalysisDashboard() {
     }
   };
 
+  const { isDemoMode } = useAppStore();
   return (<div className="space-y-6"><div><h2 className="text-2xl font-bold mb-2">Результаты анализа</h2><p className={isDark?'text-gray-400':'text-gray-600'}>Комплексная оценка по 6 системам.</p></div>
+    {isDemoMode && (
+      <div className={`p-4 rounded-xl border ${isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+        <p className={`text-sm ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+          ⚠️ <b>Демо-режим:</b> Данные сгенерированы синтетически. Для реального анализа подключите API в «Настройки LLM» и повторите анализ видео.
+        </p>
+      </div>
+    )}
     <div className="flex gap-2 flex-wrap">{systems.map(s=><button key={s.id} onClick={()=>setSys(s.id)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${sys===s.id?isDark?'bg-violet-500/20 text-violet-300 border border-violet-500/30':'bg-violet-50 text-violet-700 border border-violet-200':isDark?'text-gray-400 bg-gray-900/50 border border-gray-800':'text-gray-600 bg-white border border-gray-200'}`}>{s.label}</button>)}</div>
     <div className={`rounded-2xl border p-6 ${isDark?'bg-gray-900/30 border-gray-800':'bg-white border-gray-200'}`}>{render()}</div></div>);
 }
